@@ -1,0 +1,97 @@
+<script>
+    const API_URL = 'https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses';
+
+    // 1. Современный вариант makeGETRequest с промисами
+    function makeGETRequest(url) {
+        return fetch(url).then(response => response.json());
+    }
+
+    // Класс товара
+    class GoodsItem {
+        constructor(title, price) {
+            this.title = title;
+            this.price = price;
+        }
+
+        render() {
+            return `<div class="goods-item">
+                        <h3>${this.title}</h3>
+                        <p>${this.price}₽</p>
+                        <button onclick="cart.addToCart('${this.title}', ${this.price})">Купить</button>
+                    </div>`;
+        }
+    }
+
+    // Класс списка товаров с промисом в fetchGoods()
+    class GoodsList {
+        constructor() {
+            this.goods = [];
+        }
+
+        fetchGoods() {
+            return makeGETRequest(`${API_URL}/catalogData.json`)
+                .then((goods) => {
+                    this.goods = goods;
+                });
+        }
+
+        render() {
+            let listHtml = '';
+            this.goods.forEach(good => {
+                const goodItem = new GoodsItem(good.product_name, good.price);
+                listHtml += goodItem.render();
+            });
+            document.querySelector('.goods-list').innerHTML = listHtml;
+        }
+    }
+
+    // Класс корзины с методами
+    class Cart {
+        constructor() {
+            this.items = [];
+        }
+
+        addToCart(title, price) {
+            this.items.push({ title, price });
+            this.updateCart();
+        }
+
+        removeFromCart(index) {
+            this.items.splice(index, 1);
+            this.updateCart();
+        }
+
+        getCartItems() {
+            return this.items;
+        }
+
+        updateCart() {
+            const cartBlock = document.getElementById('cart-block');
+            cartBlock.innerHTML = '<h2>Корзина</h2>';
+
+            if (this.items.length === 0) {
+                cartBlock.innerHTML += '<p>Корзина пуста</p>';
+                return;
+            }
+
+            let total = 0;
+
+            this.items.forEach((item, index) => {
+                total += item.price;
+                cartBlock.innerHTML += `<p>${item.title} — ${item.price}₽
+                    <button onclick="cart.removeFromCart(${index})">Удалить</button></p>`;
+            });
+
+            cartBlock.innerHTML += `<p><strong>Итого: ${total}₽</strong></p>`;
+        }
+    }
+
+    // Создаём экземпляры классов
+    const list = new GoodsList();
+    const cart = new Cart(); // теперь cart — объект класса Cart
+
+    // 3. fetchGoods возвращает промис — рендерим после получения
+    list.fetchGoods().then(() => {
+        list.render();
+    });
+</script>
