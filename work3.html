@@ -1,97 +1,170 @@
-<script>
-    const API_URL = 'https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses';
-
-    // 1. Современный вариант makeGETRequest с промисами
-    function makeGETRequest(url) {
-        return fetch(url).then(response => response.json());
-    }
-
-    // Класс товара
-    class GoodsItem {
-        constructor(title, price) {
-            this.title = title;
-            this.price = price;
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Интернет-магазин</title>
+    <style>
+        /* Стилизация страницы */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
         }
 
-        render() {
-            return `<div class="goods-item">
-                        <h3>${this.title}</h3>
-                        <p>${this.price}₽</p>
-                        <button onclick="cart.addToCart('${this.title}', ${this.price})">Купить</button>
-                    </div>`;
-        }
-    }
-
-    // Класс списка товаров с промисом в fetchGoods()
-    class GoodsList {
-        constructor() {
-            this.goods = [];
+        /* Список товаров — сетка */
+        .goods-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
-        fetchGoods() {
-            return makeGETRequest(`${API_URL}/catalogData.json`)
-                .then((goods) => {
-                    this.goods = goods;
-                });
+        /* Карточка товара */
+        .goods-item {
+            border: 1px solid #ccc;
+            padding: 15px;
+            width: 200px;
+            text-align: center;
         }
 
-        render() {
-            let listHtml = '';
-            this.goods.forEach(good => {
-                const goodItem = new GoodsItem(good.product_name, good.price);
-                listHtml += goodItem.render();
-            });
-            document.querySelector('.goods-list').innerHTML = listHtml;
-        }
-    }
-
-    // Класс корзины с методами
-    class Cart {
-        constructor() {
-            this.items = [];
+        .goods-item h3 {
+            margin: 0 0 10px;
         }
 
-        addToCart(title, price) {
-            this.items.push({ title, price });
-            this.updateCart();
+        .goods-item button {
+            padding: 5px 10px;
         }
 
-        removeFromCart(index) {
-            this.items.splice(index, 1);
-            this.updateCart();
+        /* Блок корзины */
+        #cart-block {
+            margin-top: 40px;
+            border-top: 2px solid #000;
+            padding-top: 20px;
         }
 
-        getCartItems() {
-            return this.items;
+        #cart-block button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Каталог товаров</h1>
+
+    <!-- Контейнер для списка товаров -->
+    <div class="goods-list"></div>
+
+    <!-- Контейнер для корзины -->
+    <div id="cart-block">
+        <h2>Корзина</h2>
+        <p>Корзина пуста</p>
+    </div>
+
+    <!-- Скрипт с логикой магазина -->
+    <script>
+        // URL к API с данными о товарах
+        const API_URL = 'https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses';
+
+        // Функция для выполнения GET-запроса и получения JSON
+        function makeGETRequest(url) {
+            return fetch(url).then(response => response.json());
         }
 
-        updateCart() {
-            const cartBlock = document.getElementById('cart-block');
-            cartBlock.innerHTML = '<h2>Корзина</h2>';
-
-            if (this.items.length === 0) {
-                cartBlock.innerHTML += '<p>Корзина пуста</p>';
-                return;
+        // Класс для одного товара
+        class GoodsItem {
+            constructor(title, price) {
+                this.title = title;
+                this.price = price;
             }
 
-            let total = 0;
-
-            this.items.forEach((item, index) => {
-                total += item.price;
-                cartBlock.innerHTML += `<p>${item.title} — ${item.price}₽
-                    <button onclick="cart.removeFromCart(${index})">Удалить</button></p>`;
-            });
-
-            cartBlock.innerHTML += `<p><strong>Итого: ${total}₽</strong></p>`;
+            // Метод для отрисовки HTML карточки товара
+            render() {
+                return `<div class="goods-item">
+                            <h3>${this.title}</h3>
+                            <p>${this.price}₽</p>
+                            <button onclick="cart.addToCart('${this.title}', ${this.price})">Купить</button>
+                        </div>`;
+            }
         }
-    }
 
-    // Создаём экземпляры классов
-    const list = new GoodsList();
-    const cart = new Cart(); // теперь cart — объект класса Cart
+        // Класс для списка товаров
+        class GoodsList {
+            constructor() {
+                this.goods = []; // Массив с товарами
+            }
 
-    // 3. fetchGoods возвращает промис — рендерим после получения
-    list.fetchGoods().then(() => {
-        list.render();
-    });
-</script>
+            // Загрузка товаров с сервера
+            fetchGoods() {
+                return makeGETRequest(`${API_URL}/catalogData.json`)
+                    .then((goods) => {
+                        this.goods = goods; // Сохраняем полученные товары
+                    });
+            }
+
+            // Метод для отрисовки всех товаров
+            render() {
+                let listHtml = '';
+                this.goods.forEach(good => {
+                    const goodItem = new GoodsItem(good.product_name, good.price);
+                    listHtml += goodItem.render();
+                });
+                document.querySelector('.goods-list').innerHTML = listHtml;
+            }
+        }
+
+        // Класс для корзины
+        class Cart {
+            constructor() {
+                this.items = []; // Массив товаров в корзине
+            }
+
+            // Добавление товара в корзину
+            addToCart(title, price) {
+                this.items.push({ title, price });
+                this.updateCart(); // Обновляем отображение корзины
+            }
+
+            // Удаление товара из корзины по индексу
+            removeFromCart(index) {
+                this.items.splice(index, 1);
+                this.updateCart(); // Обновляем корзину
+            }
+
+            // Получить список товаров в корзине
+            getCartItems() {
+                return this.items;
+            }
+
+            // Метод обновления HTML-содержимого корзины
+            updateCart() {
+                const cartBlock = document.getElementById('cart-block');
+                cartBlock.innerHTML = '<h2>Корзина</h2>';
+
+                if (this.items.length === 0) {
+                    cartBlock.innerHTML += '<p>Корзина пуста</p>';
+                    return;
+                }
+
+                let total = 0;
+
+                // Выводим каждый товар в корзине
+                this.items.forEach((item, index) => {
+                    total += item.price;
+                    cartBlock.innerHTML += `<p>${item.title} — ${item.price}₽
+                        <button onclick="cart.removeFromCart(${index})">Удалить</button></p>`;
+                });
+
+                // Итоговая сумма
+                cartBlock.innerHTML += `<p><strong>Итого: ${total}₽</strong></p>`;
+            }
+        }
+
+        // Создание экземпляров: список товаров и корзина
+        const list = new GoodsList();
+        const cart = new Cart();
+
+        // Загрузка товаров и отрисовка после получения данных
+        list.fetchGoods().then(() => {
+            list.render();
+        });
+    </script>
+</body>
+</html>
